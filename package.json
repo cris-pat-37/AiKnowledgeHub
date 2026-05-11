@@ -1,0 +1,16 @@
+{
+  "name": "ai-knowledge-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-company AI Research and Knowledge Hub with Sarvam AI chat and TTS.",
+  "scripts": {
+    "dev": "concurrently \"python -m uvicorn server_py.main:app --reload --host 0.0.0.0 --port 5000\" \"npm run dev --prefix client\"",
+    "server": "python -m uvicorn server_py.main:app --reload --host 0.0.0.0 --port 5000",
+    "client": "npm run dev --prefix client",
+    "build": "npm install --prefix client && npm run build --prefix client",
+    "install:all": "python -m pip install -r server_py/requirements.txt && npm install --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
