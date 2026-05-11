@@ -52,6 +52,25 @@ Open:
 http://localhost:5173
 ```
 
+## Vercel Deployment
+
+This repo deploys as a Vercel app with:
+
+- React/Vite frontend from `client/dist`
+- Python FastAPI backend from `api/index.py`
+- RAG code from `server_py/rag_pipeline.py`
+
+Add these Environment Variables in Vercel before deploying:
+
+```env
+SARVAM_API_KEY=your_sarvam_key_here
+SARVAM_CHAT_MODEL=sarvam-30b
+```
+
+You do not need `VITE_API_BASE_URL` on Vercel. The frontend calls the same deployed app through `/api`.
+
+For the interview demo, Vercel stores uploaded PDFs/chunks in temporary serverless storage. For a real production app, replace the JSON store with MongoDB, Postgres, Supabase, or another persistent database.
+
 ## Interview Explanation
 
 This project uses RAG, which means Retrieval-Augmented Generation. The app does not send a question directly to the AI model. First, the Python backend searches the uploaded company documents and finds the most relevant text chunks. Then it sends only those chunks plus the question to Sarvam AI. This makes answers more grounded and reduces hallucination.

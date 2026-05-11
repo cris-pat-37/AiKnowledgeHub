@@ -8,4 +8,5 @@ data
 __pycache__
 *.pyc
 /server/
-/server_py/
+server_py/.env
+server_py/__pycache__/
