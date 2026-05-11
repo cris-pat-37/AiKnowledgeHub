@@ -275,6 +275,13 @@ async def answer_question(
             "sources": to_sources(relevant_chunks),
         }
 
+    if is_document_summary_question(question):
+        relevant_chunks = representative_chunks_by_document(chunks, per_document=1)
+        return {
+            "answer": build_document_summary_answer(documents, chunks),
+            "sources": to_sources(relevant_chunks),
+        }
+
     matches = retrieve_relevant_chunks(question, chunks)
 
     if not matches:
@@ -488,6 +495,21 @@ def build_all_documents_overview(
     )
 
 
+def build_document_summary_answer(
+    documents: list[dict[str, Any]], chunks: list[dict[str, Any]]
+) -> str:
+    if len(documents) == 1:
+        document = documents[0]
+        document_chunks = sorted(
+            [chunk for chunk in chunks if chunk["documentId"] == document["id"]],
+            key=lambda chunk: chunk["index"],
+        )
+        text = " ".join(chunk["content"] for chunk in document_chunks)
+        return f"{document['fileName']}: {summarize_document(document['fileName'], text)}"
+
+    return build_all_documents_overview(documents, chunks)
+
+
 def summarize_document(file_name: str, text: str) -> str:
     lower = text.lower()
     name = extract_likely_name(text, file_name)
@@ -580,14 +602,14 @@ def build_extractive_fallback(question: str, context_chunks: list[dict[str, Any]
 
 def extract_likely_name(text: str, file_name: str = "") -> str:
     compact = re.sub(r"\s+", " ", text).strip()
-    leading_name = re.match(
-        r"^([A-Z][A-Z.]+(?:\s+[A-Z][A-Z.]+){1,4})(?=\s+(Hyderabad|India|AI Engineer|Email|E-mail|Linkedin|GitHub|CAREER|PROFESSIONAL|P R O|B\.Tech))",
-        compact,
-        re.IGNORECASE,
-    )
+    leading_name = re.match(r"^(.{5,80}?)(?=\s+(Hyderabad|India|\+91|Email|E-mail|Linkedin|GitHub|CAREER|PROFESSIONAL|P R O|B\.Tech))", compact)
 
     if leading_name:
-        return title_case_name(leading_name.group(1))
+        candidate = re.sub(r"[^A-Za-z.\s]", " ", leading_name.group(1))
+        candidate = re.sub(r"\s+", " ", candidate).strip()
+
+        if 2 <= len(candidate.split()) <= 5:
+            return title_case_name(candidate)
 
     lines = [line.strip() for line in re.split(r"\n| {2,}", text) if line.strip()]
     candidate = next((line for line in lines if re.match(r"^[A-Z][A-Z\s.]{4,45}$", line)), "")
@@ -728,6 +750,13 @@ def is_all_documents_question(question: str) -> bool:
             "summarise documents",
             "what is this documents",
         ]
+    )
+
+
+def is_document_summary_question(question: str) -> bool:
+    lower = question.lower()
+    return any(word in lower for word in ["summarize", "summarise", "summary"]) and any(
+        word in lower for word in ["document", "pdf", "file", "resume"]
     )
 
 
