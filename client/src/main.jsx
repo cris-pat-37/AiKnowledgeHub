@@ -178,6 +178,13 @@ function App() {
     }
 
     if (audioPlayer && audioState === "idle") {
+      if (audioPlayer.restart) {
+        await audioPlayer.restart();
+        setAudioState("playing");
+        setStatus("Started audio again.");
+        return;
+      }
+
       audioPlayer.currentTime = 0;
       await audioPlayer.play();
       setAudioState("playing");
@@ -189,6 +196,35 @@ function App() {
       setIsGeneratingAudio(true);
       setStatus("Generating audio with Sarvam TTS...");
       const data = await generateSpeech(answer);
+
+      if (data.demoSpeech) {
+        const speak = () => {
+          const utterance = new SpeechSynthesisUtterance(data.text);
+          utterance.lang = "en-IN";
+          utterance.onend = () => setAudioState("idle");
+          utterance.onpause = () => setAudioState("paused");
+          utterance.onresume = () => setAudioState("playing");
+          utterance.onstart = () => setAudioState("playing");
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(utterance);
+        };
+        speak();
+        setAudioPlayer({
+          pause: () => window.speechSynthesis.pause(),
+          play: () => {
+            window.speechSynthesis.resume();
+            return Promise.resolve();
+          },
+          restart: () => {
+            speak();
+            return Promise.resolve();
+          },
+          currentTime: 0
+        });
+        setStatus("Playing generated answer.");
+        return;
+      }
+
       const audio = new Audio(`data:${data.mimeType};base64,${data.audioBase64}`);
       audio.onended = () => setAudioState("idle");
       audio.onpause = () => {
@@ -219,6 +255,13 @@ function App() {
 
   async function handleRestartAudio() {
     if (!audioPlayer) {
+      return;
+    }
+
+    if (audioPlayer.restart) {
+      await audioPlayer.restart();
+      setAudioState("playing");
+      setStatus("Restarted audio from the beginning.");
       return;
     }
 
